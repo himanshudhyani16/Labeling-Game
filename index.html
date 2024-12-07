@@ -12,8 +12,20 @@
 <body>
     <div id="game-container">
         <canvas id="gameCanvas" width="932" height="582"></canvas>
-        <button onclick="resetGame()">Reset Game</button>
+        <button class="restartButton" onclick="resetGame()">Reset Game</button>
     </div>
+    <div id="popup" class="popup hidden">
+        <div class="popup-content">
+            <h2><strong> Congratulations!</strong></h2>
+            <img width="250" src="./thumbUp.png" alt="thumbUp">
+            <p><strong> have completed this game!</strong></p>
+            <div class="popup-buttons">
+                <button id="restartButton">Restart</button>
+                <button id="closeButton">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="index.js"></script>
 </body>
 

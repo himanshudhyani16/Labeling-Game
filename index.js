@@ -1,5 +1,27 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const text = canvas.getContext("2d");
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+function showPopup() {
+  const popup = document.getElementById("popup");
+  popup.classList.remove("hidden");
+}
+
+function restartGame() {
+  const popup = document.getElementById("popup");
+  popup.classList.add("hidden");
+  resetGame();
+}
+
+function closePopup() {
+  const popup = document.getElementById("popup");
+  popup.classList.add("hidden");
+}
+
+document.getElementById("restartButton").addEventListener("click", restartGame);
+document.getElementById("closeButton").addEventListener("click", closePopup);
 
 const labels = [
   {
@@ -12,8 +34,8 @@ const labels = [
     targetY: 480,
     isPlaced: false,
     buttonX: 680,
-    buttonY: 140, // Sound button coordinates
-    showButton: true, // Track if the sound button should be displayed
+    buttonY: 140,
+    showButton: true,
   },
   {
     text: "STEM",
@@ -92,58 +114,76 @@ soundButtonImage.src = "sound.png";
 plantImage.onload = () => drawGame();
 soundButtonImage.onload = () => drawGame();
 
-// Function to draw text with letter-spacing
 function drawTextWithSpacing(text, x, y, spacing) {
-  ctx.fillStyle = "black"; // Text color
-  ctx.font = "16px Arial"; // Text font size
+  ctx.fillStyle = "black";
+  ctx.font = "16px Arial";
 
   let startX = x;
   for (let i = 0; i < text.length; i++) {
-    ctx.fillText(text[i], startX, y); // Draw each character
-    startX += ctx.measureText(text[i]).width + spacing; // Adjust position based on letter width + spacing
+    ctx.fillText(text[i], startX, y);
+    startX += ctx.measureText(text[i]).width + spacing;
   }
 }
 
-// Draw the game state
+function drawTextOnRedBox() {
+  text.fillStyle = "black"; 
+  text.font = "18px Arial"; 
+  //   text.textAlign = "center"; 
+
+  const redBoxX = 250; 
+  const redBoxY = 30; 
+  text.fillText(
+    "Drag and drop the words in the box to label the picture.",
+    redBoxX,
+    redBoxY
+  );
+}
+
 function drawGame() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(plantImage, 45, 76, 625, 465);
+  
+  drawTextOnRedBox();
 
   labels.forEach((label) => {
     if (draggingLabel === label) {
-      ctx.fillStyle = "transparent"; // Transparent background when dragging
+      ctx.fillStyle = "transparent";
     } else if (label.isPlaced) {
-      ctx.fillStyle = "transparent"; // Transparent background when placed
+      ctx.fillStyle = "transparent";
     } else {
-      ctx.fillStyle = "transparent"; // Default background color
+      ctx.fillStyle = "transparent";
     }
 
-    // Draw the label background
     ctx.fillRect(label.x - 5, label.y - 25, 80, 40);
     ctx.fillStyle = "black";
     ctx.font = "16px Arial";
-    // Apply letter-spacing if the label is being dragged or placed at the target
+
     if (draggingLabel === label || label.isPlaced) {
-      drawTextWithSpacing(label.text, label.x, label.y, 20); // 20px letter-spacing
+      drawTextWithSpacing(label.text, label.x, label.y, 20);
     } else {
-      ctx.fillText(label.text, label.x, label.y); // Default text rendering without letter-spacing
+      ctx.fillText(label.text, label.x, label.y);
     }
 
-    // Draw the sound button if the label hasn't been placed
     if (label.showButton) {
       ctx.drawImage(soundButtonImage, label.buttonX, label.buttonY, 24, 24);
     }
   });
+
+  
+  if (labels.every((label) => label.isPlaced)) {
+    // showPopup();
+    setTimeout(() => {
+      showPopup();
+    }, 2000);
+  }
 }
 
-// Check if a point is inside a label's bounding box
 function isInsideLabel(x, y, label) {
   return (
     x > label.x - 10 && x < label.x + 70 && y > label.y - 20 && y < label.y + 20
   );
 }
 
-// Utility function to get the correct coordinates from mouse or touch events
 function getEventCoordinates(e) {
   if (e.touches && e.touches.length > 0) {
     return {
@@ -154,13 +194,26 @@ function getEventCoordinates(e) {
   return { x: e.offsetX, y: e.offsetY };
 }
 
-// Handle mouse and touch start
-canvas.addEventListener("mousedown", (e) => handleStart(e));
+// canvas.addEventListener("mousedown", (e) => handleStart(e));
+canvas.addEventListener("mousedown", (e) => {
+  const mouseX = e.offsetX;
+  const mouseY = e.offsetY;
+
+  draggingLabel = labels.find(
+    (label) => isInsideLabel(mouseX, mouseY, label) && !label.isPlaced
+  );
+
+  if (draggingLabel) {
+    dragOffsetX = mouseX - draggingLabel.x;
+    dragOffsetY = mouseY - draggingLabel.y;
+    console.log(`Dragging started on label: ${draggingLabel.text}`);
+  }
+});
+
 canvas.addEventListener("touchstart", (e) => handleStart(e));
 function handleStart(e) {
   const { x, y } = getEventCoordinates(e);
 
-  // Check if clicking a sound button
   labels.forEach((label) => {
     if (
       label.showButton &&
@@ -169,7 +222,7 @@ function handleStart(e) {
       y > label.buttonY &&
       y < label.buttonY + 20
     ) {
-      speakLabel(label.text); // Speak the label's text
+      speakLabel(label.text);
     }
   });
 
@@ -179,8 +232,19 @@ function handleStart(e) {
   e.preventDefault();
 }
 
-// Handle mouse and touch move
-canvas.addEventListener("mousemove", (e) => handleMove(e));
+// canvas.addEventListener("mousemove", (e) => handleMove(e));
+canvas.addEventListener("mousemove", (e) => {
+  if (draggingLabel) {
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+
+    draggingLabel.x = mouseX - dragOffsetX;
+    draggingLabel.y = mouseY - dragOffsetY;
+
+    drawGame();
+  }
+});
+
 canvas.addEventListener("touchmove", (e) => handleMove(e));
 function handleMove(e) {
   if (draggingLabel) {
@@ -192,14 +256,12 @@ function handleMove(e) {
   }
 }
 
-// Handle mouse and touch end
 canvas.addEventListener("mouseup", () => handleEnd());
 canvas.addEventListener("touchend", () => handleEnd());
 function handleEnd() {
   if (draggingLabel) {
     const { targetX, targetY, startX, startY, text } = draggingLabel;
 
-    // Check if the label is dropped close enough to the target position
     if (
       Math.abs(draggingLabel.x - targetX) < 20 &&
       Math.abs(draggingLabel.y - targetY) < 20
@@ -207,7 +269,7 @@ function handleEnd() {
       draggingLabel.x = targetX;
       draggingLabel.y = targetY;
       draggingLabel.isPlaced = true;
-      draggingLabel.showButton = false; // Remove sound button
+      draggingLabel.showButton = false;
       speakLabel(text);
     } else {
       draggingLabel.x = startX;
@@ -220,30 +282,27 @@ function handleEnd() {
   }
 }
 
-// Function to speak a label's text
 function speakLabel(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
+  const femaleVoice = voices.find((voice) =>
+    voice.name.toLowerCase().includes("female")
+  );
 
-  //   const femaleVoice = voices.find((voice) =>
-  //     voice.name.toLowerCase().includes("female")
-  //   );
-
-  //   if (femaleVoice) {
-  //     utterance.voice = femaleVoice;
-  //   }
+  if (femaleVoice) {
+    utterance.voice = femaleVoice;
+  }
 
   utterance.lang = "en-US";
   speechSynthesis.speak(utterance);
 }
 
-// Reset the game
 function resetGame() {
   labels.forEach((label) => {
     label.x = label.startX;
     label.y = label.startY;
     label.isPlaced = false;
-    label.showButton = true; // Restore sound button
+    label.showButton = true;
   });
   drawGame();
 }
