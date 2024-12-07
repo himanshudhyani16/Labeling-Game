@@ -12,7 +12,8 @@ const labels = [
     targetY: 480,
     isPlaced: false,
     buttonX: 680,
-    buttonY: 140, // Track if the word is placed at the target
+    buttonY: 140, // Sound button coordinates
+    showButton: true, // Track if the sound button should be displayed
   },
   {
     text: "STEM",
@@ -25,6 +26,7 @@ const labels = [
     isPlaced: false,
     buttonX: 680,
     buttonY: 190,
+    showButton: true,
   },
   {
     text: "LEAF",
@@ -37,6 +39,7 @@ const labels = [
     isPlaced: false,
     buttonX: 680,
     buttonY: 240,
+    showButton: true,
   },
   {
     text: "FLOWER",
@@ -49,6 +52,7 @@ const labels = [
     isPlaced: false,
     buttonX: 680,
     buttonY: 291,
+    showButton: true,
   },
   {
     text: "FRUIT",
@@ -61,6 +65,7 @@ const labels = [
     isPlaced: false,
     buttonX: 680,
     buttonY: 341,
+    showButton: true,
   },
   {
     text: "BUD",
@@ -73,13 +78,14 @@ const labels = [
     isPlaced: false,
     buttonX: 680,
     buttonY: 391,
+    showButton: true,
   },
 ];
 
 let draggingLabel = null;
 
 const plantImage = new Image();
-plantImage.src = "plant.png"; // Add the path to the image file
+plantImage.src = "plant.png";
 const soundButtonImage = new Image();
 soundButtonImage.src = "sound.png";
 
@@ -105,11 +111,10 @@ function drawGame() {
 
   labels.forEach((label) => {
     if (draggingLabel === label) {
-      ctx.fillStyle = "transparent"; // Change background to yellow when dragging
+      ctx.fillStyle = "transparent"; // Transparent background when dragging
     } else if (label.isPlaced) {
-      ctx.fillStyle = "transparent"; // Change background to green when placed correctly
+      ctx.fillStyle = "transparent"; // Transparent background when placed
     } else {
-      //   ctx.fillStyle = "lightblue"; // Default background color
       ctx.fillStyle = "transparent"; // Default background color
     }
 
@@ -119,12 +124,15 @@ function drawGame() {
     ctx.font = "16px Arial";
     // Apply letter-spacing if the label is being dragged or placed at the target
     if (draggingLabel === label || label.isPlaced) {
-      drawTextWithSpacing(label.text, label.x, label.y, 20); // 12px letter-spacing
+      drawTextWithSpacing(label.text, label.x, label.y, 20); // 20px letter-spacing
     } else {
       ctx.fillText(label.text, label.x, label.y); // Default text rendering without letter-spacing
     }
-    // Draw the sound button
-    ctx.drawImage(soundButtonImage, label.buttonX, label.buttonY, 24, 24);
+
+    // Draw the sound button if the label hasn't been placed
+    if (label.showButton) {
+      ctx.drawImage(soundButtonImage, label.buttonX, label.buttonY, 24, 24);
+    }
   });
 }
 
@@ -135,50 +143,61 @@ function isInsideLabel(x, y, label) {
   );
 }
 
-// Handle mouse events
-canvas.addEventListener("mousedown", (e) => {
-  const mouseX = e.offsetX;
-  const mouseY = e.offsetY;
+// Utility function to get the correct coordinates from mouse or touch events
+function getEventCoordinates(e) {
+  if (e.touches && e.touches.length > 0) {
+    return {
+      x: e.touches[0].clientX - canvas.offsetLeft,
+      y: e.touches[0].clientY - canvas.offsetTop,
+    };
+  }
+  return { x: e.offsetX, y: e.offsetY };
+}
+
+// Handle mouse and touch start
+canvas.addEventListener("mousedown", (e) => handleStart(e));
+canvas.addEventListener("touchstart", (e) => handleStart(e));
+function handleStart(e) {
+  const { x, y } = getEventCoordinates(e);
 
   // Check if clicking a sound button
   labels.forEach((label) => {
     if (
-      mouseX > label.buttonX &&
-      mouseX < label.buttonX + 20 &&
-      mouseY > label.buttonY &&
-      mouseY < label.buttonY + 20
+      label.showButton &&
+      x > label.buttonX &&
+      x < label.buttonX + 20 &&
+      y > label.buttonY &&
+      y < label.buttonY + 20
     ) {
       speakLabel(label.text); // Speak the label's text
     }
   });
 
-  console.log(`Mouse Down: (${mouseX}, ${mouseY})`); // Log mouse position on click
-
   draggingLabel = labels.find(
-    (label) => isInsideLabel(mouseX, mouseY, label) && !label.isPlaced
+    (label) => isInsideLabel(x, y, label) && !label.isPlaced
   );
-  if (draggingLabel) {
-    console.log(`Dragging started on label: ${draggingLabel.text}`);
-  }
-});
+  e.preventDefault();
+}
 
-canvas.addEventListener("mousemove", (e) => {
+// Handle mouse and touch move
+canvas.addEventListener("mousemove", (e) => handleMove(e));
+canvas.addEventListener("touchmove", (e) => handleMove(e));
+function handleMove(e) {
   if (draggingLabel) {
-    const mouseX = e.offsetX;
-    const mouseY = e.offsetY;
-    console.log(`Mouse Move: (${mouseX}, ${mouseY})`); // Log mouse position during drag
-
-    draggingLabel.x = mouseX;
-    draggingLabel.y = mouseY;
+    const { x, y } = getEventCoordinates(e);
+    draggingLabel.x = x;
+    draggingLabel.y = y;
     drawGame();
+    e.preventDefault();
   }
-});
+}
 
-canvas.addEventListener("mouseup", () => {
+// Handle mouse and touch end
+canvas.addEventListener("mouseup", () => handleEnd());
+canvas.addEventListener("touchend", () => handleEnd());
+function handleEnd() {
   if (draggingLabel) {
     const { targetX, targetY, startX, startY, text } = draggingLabel;
-
-    console.log(`Mouse Up at: (${draggingLabel.x}, ${draggingLabel.y})`);
 
     // Check if the label is dropped close enough to the target position
     if (
@@ -187,68 +206,44 @@ canvas.addEventListener("mouseup", () => {
     ) {
       draggingLabel.x = targetX;
       draggingLabel.y = targetY;
-      draggingLabel.isPlaced = true; // Mark as placed
-      draggingLabel.backgroundColor = "green"; // Change background color to green
+      draggingLabel.isPlaced = true;
+      draggingLabel.showButton = false; // Remove sound button
       speakLabel(text);
     } else {
       draggingLabel.x = startX;
       draggingLabel.y = startY;
-      draggingLabel.isPlaced = false; // Reset placed flag
-      draggingLabel.backgroundColor = "lightblue"; // Reset background color if not placed correctly
+      draggingLabel.isPlaced = false;
     }
 
     draggingLabel = null;
     drawGame();
   }
-});
+}
 
 // Function to speak a label's text
-// function speakLabel(text) {
-
-//   const utterance = new SpeechSynthesisUtterance(text);
-//   utterance.lang = "en-US";
-//   speechSynthesis.speak(utterance);
-// }
-
 function speakLabel(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
 
-  // Find a female voice
-  const femaleVoice = voices.find((voice) =>
-    voice.name.toLowerCase().includes("female")
-  );
+  //   const femaleVoice = voices.find((voice) =>
+  //     voice.name.toLowerCase().includes("female")
+  //   );
 
-  // Set the female voice if available
-  if (femaleVoice) {
-    utterance.voice = femaleVoice;
-  }
+  //   if (femaleVoice) {
+  //     utterance.voice = femaleVoice;
+  //   }
 
-  utterance.lang = "en-US"; // Set language (modify if needed)
+  utterance.lang = "en-US";
   speechSynthesis.speak(utterance);
 }
-
-// Function to handle mouseover and mouseout events to simulate letter spacing on hover
-canvas.addEventListener("mousemove", (e) => {
-  const mouseX = e.offsetX;
-  const mouseY = e.offsetY;
-
-  labels.forEach((label) => {
-    if (isInsideLabel(mouseX, mouseY, label)) {
-      document.body.style.cursor = "pointer"; // Change cursor to indicate hover
-    } else {
-      document.body.style.cursor = "default"; // Reset cursor to default
-    }
-  });
-});
 
 // Reset the game
 function resetGame() {
   labels.forEach((label) => {
     label.x = label.startX;
     label.y = label.startY;
-    label.isPlaced = false; // Reset placed flag
-    label.backgroundColor = "lightblue"; // Reset background color
+    label.isPlaced = false;
+    label.showButton = true; // Restore sound button
   });
   drawGame();
 }
