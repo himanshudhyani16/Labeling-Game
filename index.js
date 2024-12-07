@@ -285,13 +285,13 @@ function handleEnd() {
 function speakLabel(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
-  const femaleVoice = voices.find((voice) =>
-    voice.name.toLowerCase().includes("female")
-  );
+  // const femaleVoice = voices.find((voice) =>
+  //   voice.name.toLowerCase().includes("female")
+  // );
 
-  if (femaleVoice) {
-    utterance.voice = femaleVoice;
-  }
+  // if (femaleVoice) {
+  //   utterance.voice = femaleVoice;
+  // }
 
   utterance.lang = "en-US";
   speechSynthesis.speak(utterance);
