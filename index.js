@@ -4,6 +4,27 @@ const text = canvas.getContext("2d");
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 
+const howtoplay = document.getElementById("howtoplay");
+const confimBtn = document.getElementById("confimBtn");
+
+let timerElement = document.getElementById("timer");
+let elapsedTime = 0;
+let timerInterval = null;
+let isPaused = false;
+let time = 0;
+let firstDragStarted = false;
+
+let rightAttempts = 0;
+let wrongAttempts = 0;
+
+// Function to update the attempt counts in the UI
+const rightAttemptsElement = document.getElementById("rightAttempts");
+const wrongAttemptsElement = document.getElementById("wrongAttempts");
+function updateAttemptsUI() {
+  rightAttemptsElement.innerHTML = rightAttempts;
+  wrongAttemptsElement.innerHTML = wrongAttempts;
+}
+
 function showPopup() {
   const popup = document.getElementById("popup");
   popup.classList.remove("hidden");
@@ -12,7 +33,10 @@ function showPopup() {
 function restartGame() {
   const popup = document.getElementById("popup");
   popup.classList.add("hidden");
+  rightAttemptsElement.innerHTML = 0;
+  wrongAttemptsElement.innerHTML = 0;
   resetGame();
+  resetTimer();
 }
 
 function closePopup() {
@@ -104,6 +128,110 @@ const labels = [
   },
 ];
 
+// Function to start the timer
+function startTimer() {
+  if (!timerInterval && !isPaused) {
+    firstDragStarted = true;
+    timerInterval = setInterval(() => {
+      time++;
+      updateTimerDisplay();
+    }, 1000);
+  }
+}
+
+// Function to pause the timer
+function pauseTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    isPaused = true;
+  }
+}
+
+// Function to resume the timer
+function resumeTimer() {
+  if (isPaused) {
+    isPaused = false;
+    startTimer(); // Resumes the timer
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  time = 0;
+  firstDragStarted = false;
+  isPaused = false;
+  updateTimerDisplay();
+}
+
+// Function to stop the timer
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function updateTimerDisplay() {
+  let minutes = String(Math.floor(time / 60)).padStart(2, "0");
+  let seconds = String(time % 60).padStart(2, "0");
+  timerElement.innerHTML = `${minutes}:${seconds}`;
+}
+
+// Function to check if all labels are placed correctly
+function checkCompletion(labels) {
+  if (labels.every((label) => label.isPlaced)) {
+    stopTimer();
+  }
+}
+
+// Function to reset the timer
+function resetTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval); // Stop any running timer
+    timerInterval = null;
+  }
+  time = 0; // Reset time to 0
+  timerElement.innerHTML = "00:00"; // Update the timer display
+  firstDragStarted = false; // Allow the timer to start again
+}
+
+const pauseGamePopUp = document
+  .getElementById("pauseBtn")
+  .addEventListener("click", pauseGame);
+const resumeGamePopUp = document
+  .getElementById("resumeBtn")
+  .addEventListener("click", resumeGame);
+// Function to pause the game
+function pauseGame() {
+  isPaused = true;
+  clearInterval(timerInterval); // Stop the timer
+  showPausePopup(); // Show the pause popup
+  pauseTimer();
+}
+
+// Function to resume the game
+function resumeGame() {
+  isPaused = false;
+  resumeTimer(); // Resume the timer
+  hidePausePopup(); // Hide the pause popup
+  drawGame(); // Redraw the game
+}
+
+// Show pause popup
+function showPausePopup() {
+  console.log("Click hua showPausePopup");
+  const pausePopup = document.getElementById("pausePopup");
+  pausePopup.classList.remove("hidden");
+}
+
+// Hide pause popup
+function hidePausePopup() {
+  const pausePopup = document.getElementById("pausePopup");
+  pausePopup.classList.add("hidden");
+}
+
 let draggingLabel = null;
 
 const plantImage = new Image();
@@ -126,12 +254,12 @@ function drawTextWithSpacing(text, x, y, spacing) {
 }
 
 function drawTextOnRedBox() {
-  text.fillStyle = "black"; 
-  text.font = "18px Arial"; 
-  //   text.textAlign = "center"; 
+  text.fillStyle = "black";
+  text.font = "18px Arial";
+  //   text.textAlign = "center";
 
-  const redBoxX = 250; 
-  const redBoxY = 30; 
+  const redBoxX = 250;
+  const redBoxY = 30;
   text.fillText(
     "Drag and drop the words in the box to label the picture.",
     redBoxX,
@@ -142,7 +270,7 @@ function drawTextOnRedBox() {
 function drawGame() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(plantImage, 45, 76, 625, 465);
-  
+
   drawTextOnRedBox();
 
   labels.forEach((label) => {
@@ -169,7 +297,6 @@ function drawGame() {
     }
   });
 
-  
   if (labels.every((label) => label.isPlaced)) {
     // showPopup();
     setTimeout(() => {
@@ -207,6 +334,7 @@ canvas.addEventListener("mousedown", (e) => {
     dragOffsetX = mouseX - draggingLabel.x;
     dragOffsetY = mouseY - draggingLabel.y;
     console.log(`Dragging started on label: ${draggingLabel.text}`);
+    startTimer(); // Start the timer on the first drag
   }
 });
 
@@ -247,6 +375,7 @@ canvas.addEventListener("mousemove", (e) => {
 
 canvas.addEventListener("touchmove", (e) => handleMove(e));
 function handleMove(e) {
+  if (isPaused) return;
   if (draggingLabel) {
     const { x, y } = getEventCoordinates(e);
     draggingLabel.x = x;
@@ -259,6 +388,7 @@ function handleMove(e) {
 canvas.addEventListener("mouseup", () => handleEnd());
 canvas.addEventListener("touchend", () => handleEnd());
 function handleEnd() {
+  if (isPaused) return;
   if (draggingLabel) {
     const { targetX, targetY, startX, startY, text } = draggingLabel;
 
@@ -271,27 +401,31 @@ function handleEnd() {
       draggingLabel.isPlaced = true;
       draggingLabel.showButton = false;
       speakLabel(text);
+
+      rightAttempts++;
     } else {
       draggingLabel.x = startX;
       draggingLabel.y = startY;
       draggingLabel.isPlaced = false;
+      wrongAttempts++;
     }
-
+    checkCompletion(labels);
     draggingLabel = null;
     drawGame();
+    updateAttemptsUI();
   }
 }
 
 function speakLabel(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
-  // const femaleVoice = voices.find((voice) =>
-  //   voice.name.toLowerCase().includes("female")
-  // );
+  const femaleVoice = voices.find((voice) =>
+    voice.name.toLowerCase().includes("female")
+  );
 
-  // if (femaleVoice) {
-  //   utterance.voice = femaleVoice;
-  // }
+  if (femaleVoice) {
+    utterance.voice = femaleVoice;
+  }
 
   utterance.lang = "en-US";
   speechSynthesis.speak(utterance);
@@ -306,3 +440,65 @@ function resetGame() {
   });
   drawGame();
 }
+
+// Create the audio object for background sound
+const backgroundSound = new Audio("bgAudio.mpeg");
+let isPlaying = true;
+const toggleButton = document.getElementById("toggleButton");
+// Set the sound to loop
+backgroundSound.loop = true;
+backgroundSound.volume = 1; // Set the volume (0 to 1)
+
+// Function to play the sound
+function playBackgroundSound() {
+  backgroundSound.play().catch((error) => {
+    isPlaying = false;
+    toggleButton.innerText = "Pause🔈";
+    console.warn("Autoplay is blocked. Waiting for user interaction.");
+  });
+}
+
+// Automatically play the background sound when the page loads
+window.onload = () => {
+  playBackgroundSound();
+};
+
+// Add an optional event to start sound if autoplay is blocked
+// document.addEventListener("click", () => {
+//   if (backgroundSound.paused) {
+//     playBackgroundSound();
+//   }
+// });
+
+// Get the toggle button
+
+// Set an initial state for the music
+// Set to true since it should play on page load
+
+// Update the button text based on the initial state
+toggleButton.innerText = "🔊"; // Change button text to Pause because the music is playing
+
+// Add a click event listener to the button
+toggleButton.addEventListener("click", () => {
+  if (isPlaying) {
+    backgroundSound.pause();
+    toggleButton.innerText = "🔈"; // Change button text to Play
+  } else {
+    backgroundSound.play().catch((error) => {
+      console.warn("Autoplay is blocked. Waiting for user interaction.");
+    });
+    toggleButton.innerText = "🔊"; // Change button text to Pause
+  }
+  isPlaying = !isPlaying; // Toggle the state
+});
+
+function hideHowToPlay() {
+  howtoplay.classList.add("hidden");
+  console.log("click hua", howtoplay);
+  backgroundSound.play().catch((error) => {
+    console.warn("Autoplay is blocked. Waiting for user interaction.");
+  });
+  toggleButton.innerText = "🔊";
+}
+
+confimBtn.addEventListener("click", hideHowToPlay);

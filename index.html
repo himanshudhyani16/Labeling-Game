@@ -6,25 +6,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plant Labeling Game</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css"
+        integrity="sha512-5Hs3dF2AEPkpNAR7UiOHba+lRSJNeM2ECkwxUIxC1Q/FLycGTbNapWXB4tP889k5T5Ju8fs4b1P5z/iB4nMfSQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 </head>
 
 <body>
-    <div id="game-container">
-        <canvas id="gameCanvas" width="932" height="582"></canvas>
-        <button class="restartButton" onclick="resetGame()">Reset Game</button>
-    </div>
-    <div id="popup" class="popup hidden">
-        <div class="popup-content">
-            <h2><strong> Congratulations!</strong></h2>
-            <img width="250" src="./thumbUp.png" alt="thumbUp">
-            <p><strong> have completed this game!</strong></p>
-            <div class="popup-buttons">
-                <button id="restartButton">Restart</button>
-                <button id="closeButton">Close</button>
+    <Section>
+
+        <div id="game-container">
+            <canvas id="gameCanvas" width="932" height="582"></canvas>
+            <!-- <button class="restartButton" onclick="resetGame()">Reset Game</button> -->
+            <div class="ui-bar_container">
+                <div class="ui-bar">
+                    <div class="left-section">
+                        <img src="https://turtlediary.com/logo.png" alt="Logo" class="logo">
+                        <button class="ui-button green"><i class="check-icon"></i>✔</button>
+                        <span class="score" id="rightAttempts">0</span>
+                        <button class="ui-button red"><i class="cross-icon"></i>✘</button>
+                        <span class="score" id="wrongAttempts">0</span>
+                    </div>
+                    <div class="center-section">
+                        <button class="ui-button purple">≡</button>
+                        <span class="page-info">1 / 1</span>
+                    </div>
+                    <div class="right-section">
+                        <button class="ui-button" id="timer"><i class="clock-icon"></i>00:00</button>
+                        <button class="ui-button" id="toggleButton"><i class="sound-icon"></i>🔊 </button>
+                        <!-- <button class="ui-button"><i class="music-icon"></i>🎵 </button> -->
+                        <button class="ui-button" id="pauseBtn"><i class="pause-icon"></i>⏸</button>
+                        <button class="ui-button" onclick="resetGame()"><i class="reset-icon"></i>🔄</button>
+                    </div>
+                </div>
             </div>
+
+            <div id="popup" class="popup hidden">
+                <div class="popup-content">
+                    <h2><strong> Congratulations!</strong></h2>
+                    <img width="250" src="./thumbUp.png" alt="thumbUp">
+                    <p><strong> have completed this game!</strong></p>
+                    <div class="popup-buttons">
+                        <button id="restartButton">Restart</button>
+                        <button id="closeButton">Close</button>
+                    </div>
+                </div>
+            </div>
+            <div class="startingpopup" id="howtoplay">
+                <div class="container">
+                    <div class="header">
+                        <h1>How to Play</h1>
+                    </div>
+                    <div class="game-area">
+                        <img src="./help-img-11.png" alt="Frog Life Cycle" class="life-cycle-image">
+                        <div class="instructions">
+                            <ul>
+                                <li>Identify and label the figure.</li>
+                                <li>Drag the given words to the correct blank spaces and complete the labeling.</li>
+                            </ul>
+                        </div>
+
+                        <button class="check-btn" id="confimBtn">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pauseGame hidden" id="pausePopup"><i id="resumeBtn" class="fa fa-play-circle"></i></div>
         </div>
-    </div>
+    </Section>
 
     <script src="index.js"></script>
 </body>
